@@ -44,6 +44,17 @@ export function createRig(asset, suit) {
   for (const k in NAMES) { bones[k] = find(NAMES[k]); rest[k] = bones[k].quaternion.clone(); }
   const hipOffset = bones.hips.position.clone().multiplyScalar(SCALE);
 
+  // fingers: each knuckle curls about the axis that swings it from the T-pose toward the palm (down)
+  const fingers = { 1: [], [-1]: [] };
+  root.updateWorldMatrix(true, true);
+  root.traverse((o) => {
+    const m = o.isBone && /(Left|Right)Hand(Thumb|Index|Middle|Ring|Pinky)([123])_/.exec(o.name);
+    if (!m || !o.children[0]) return;
+    const dir = o.children[0].getWorldPosition(new THREE.Vector3()).sub(o.getWorldPosition(_a)).normalize();
+    const axis = dir.cross(_b.set(0, -1, 0)).normalize().applyQuaternion(o.getWorldQuaternion(_q).invert());
+    fingers[m[1] === 'Left' ? 1 : -1].push({ bone: o, rest: o.quaternion.clone(), axis, gain: m[2] === 'Thumb' ? 0.35 : 1 });
+  });
+
   const uSuit = { value: new THREE.Color(suit) };
   root.traverse((o) => {
     if (!o.isSkinnedMesh) return;
@@ -96,6 +107,10 @@ export function createRig(asset, suit) {
     /** side: +1 = model +x (the character's left). target/pole are world points. */
     arm(side, target, pole) { limb(side > 0 ? bones.armL : bones.armR, side > 0 ? bones.foreL : bones.foreR, side > 0 ? bones.handL : bones.handR, target, pole); },
     leg(side, target, pole) { limb(side > 0 ? bones.legL : bones.legR, side > 0 ? bones.shinL : bones.shinR, side > 0 ? bones.footL : bones.footR, target, pole); },
+    /** Curl the fingers: 0 = open hand, 1 = clenched fist. */
+    fist(side, amount) {
+      for (const f of fingers[side]) f.bone.quaternion.copy(f.rest).multiply(_q.setFromAxisAngle(f.axis, amount * 1.45 * f.gain));
+    },
     hand(side, out) { return (side > 0 ? bones.handL : bones.handR).getWorldPosition(out); },
     head(out) { return bones.head.getWorldPosition(out); },
   };

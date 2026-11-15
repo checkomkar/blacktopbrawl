@@ -52,6 +52,14 @@
   #pos .plate { border-left: none; border-right: 5px solid var(--yellow); }
   #pos .val { font-size: 46px; line-height: 1; } #pos .val small { font-size: 22px; opacity: .7; }
   .credit { font: 12px/1.4 system-ui, sans-serif; font-style: normal; letter-spacing: 0; opacity: .6; margin: 14px 0 0; }
+  #pause { position: fixed; inset: 0; z-index: 30; display: none; flex-direction: column; align-items: center; justify-content: center; gap: 14px; background: rgba(12, 12, 16, .62); color: var(--paper); text-align: center; }
+  body.paused #pause { display: flex; }
+  #pause h2 { margin: 0; font-size: 92px; font-weight: 400; line-height: 1; transform: skewX(-10deg); color: var(--yellow); }
+  #pause p { margin: 0; font-size: 26px; }
+  #pause kbd { font: 600 14px system-ui, sans-serif; font-style: normal; background: var(--paper); color: var(--ink); padding: 3px 8px; border-radius: 3px; margin: 0 6px 0 18px; }
+  #moves { left: 50%; bottom: 86px; transform: translateX(-50%) skewX(-10deg); display: flex; gap: 4px; font-size: 22px; }
+  #moves span { padding: 4px 16px; background: rgba(18,18,22,.72); opacity: .55; }
+  #moves span.on { background: var(--yellow); color: var(--ink); opacity: 1; text-shadow: none; }
   .picks { display: flex; flex-wrap: wrap; gap: 6px 44px; }
   .diff { display: flex; align-items: center; gap: 10px; margin-top: 22px; font-size: 30px; }
   .diff b { font-weight: 400; min-width: 4.2em; text-align: center; color: #58c13b; }
@@ -112,10 +120,12 @@
   <div class="vital" id="foe"><span id="foeface"></span><div><div class="who" id="foename"></div><div class="hp" id="foehp"><i></i></div></div></div>
   <div class="vital"><div><div class="who">YOU · <span id="weapon">J PUNCH · K KICK · L BAT · I CHAIN</span></div><div class="hp" id="myhp"><i></i></div></div></div>
 </div>
+<div id="moves" class="hud"></div>
 <div id="police" class="hud">POLICE · <span id="copdist"></span></div>
 <div id="hurt"></div>
 <div id="toast"></div>
 <div id="banner"></div>
+<div id="pause"><h2>PAUSED</h2><p><kbd>Esc</kbd>Resume<kbd>Enter</kbd>Restart<kbd>Q</kbd>Quit to title</p></div>
 
 <section id="title" class="screen">
   <p class="tag">PROTOTYPE · PHASE 4 · COPS AND TOWNS</p>
@@ -128,10 +138,13 @@
     <li><kbd>K</kbd>Kick</li>
     <li><kbd>L</kbd>Bat</li>
     <li><kbd>I</kbd>Chain</li>
+    <li><kbd>Scroll</kbd>Pick move</li>
+    <li><kbd>Click</kbd>Use move</li>
     <li><kbd>C</kbd>Camera view</li>
     <li><kbd>↑</kbd><kbd>↓</kbd>Pick course (here)</li>
     <li><kbd>R</kbd>Reset to road</li>
     <li><kbd>M</kbd>Mute</li>
+    <li><kbd>Esc</kbd>Pause</li>
   </ul>
   <div class="picks">
     <div class="diff course"><kbd>↑</kbd><b></b><kbd>↓</kbd><span></span></div>

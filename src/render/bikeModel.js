@@ -263,7 +263,7 @@ export function createBike({ color = 0xd3202c, suit = 0x1d1e24, accent = 0xf2c21
   const backBat = add(new THREE.CylinderGeometry(0.05, 0.03, 0.85, 10), woodM, 0.05, 1.22, -0.26, 0.9, 0, 0.5, rider);
   const backChain = add(new THREE.TorusGeometry(0.2, 0.025, 6, 18), metal, 0, 1.14, -0.12, 0.9, 0, 0.6, rider);
 
-  const state = { roll: 0, jolt: 0 };
+  const state = { roll: 0, jolt: 0, reach: 0 };
 
   // --- skinned rider (optional): posed from the same joints the primitive limbs use
   let rig = null;
@@ -275,7 +275,8 @@ export function createBike({ color = 0xd3202c, suit = 0x1d1e24, accent = 0xf2c21
   const poseRig = (a) => {
     rider.updateWorldMatrix(true, true);
     rider.getWorldQuaternion(wq);
-    rig.body(POSE.seat, v1.copy(POSE.torso).applyQuaternion(wq), v2.copy(POSE.look).applyQuaternion(wq));
+    // a punch turns the head (and helmet) toward the target
+    rig.body(POSE.seat, v1.copy(POSE.torso).applyQuaternion(wq), v2.copy(POSE.look).setX(state.reach * 0.7).applyQuaternion(wq));
     for (const sx of [-1, 1]) {
       const s = sides[sx];
       const active = a && -a.side === sx, isKick = !!active && a.kind === 'kick', isArm = !!active && !isKick;
@@ -283,6 +284,7 @@ export function createBike({ color = 0xd3202c, suit = 0x1d1e24, accent = 0xf2c21
       if (isArm) { s.elbow.localToWorld(v1.set(sx * 0.34, 0, 0)); s.elbow.getWorldPosition(v2); }
       else { rider.localToWorld(v1.set(sx * POSE.hand[0], POSE.hand[1], POSE.hand[2])); rider.localToWorld(v2.set(sx * POSE.elbow[0], POSE.elbow[1], POSE.elbow[2])); }
       rig.arm(sx, v1, v2);
+      rig.fist(sx, isArm ? 1 : 0.55);                    // clenched to hit, half-closed on the bars
       if (isArm) s.grip.position.copy(s.elbow.worldToLocal(rig.hand(sx, v1)));   // weapon stays in the fist
       // leg: foot on the peg, or follow the kicking boot
       if (isKick) { s.knee.localToWorld(v1.set(sx * 0.42, 0, 0)); s.knee.getWorldPosition(v2); }
@@ -291,6 +293,7 @@ export function createBike({ color = 0xd3202c, suit = 0x1d1e24, accent = 0xf2c21
     }
     rider.worldToLocal(rig.head(v1));
     head.position.set(v1.x, v1.y + 0.1, v1.z + 0.03);
+    head.rotation.y = state.reach * 0.6;
   };
 
   return {
@@ -336,6 +339,7 @@ export function createBike({ color = 0xd3202c, suit = 0x1d1e24, accent = 0xf2c21
       // multiplying by sx mirrors them for the left/right limb.
       const a = f.attack;
       let bodyLean = 0;            // + = torso tips toward model -x
+      let reach = 0;               // punch extension, signed toward model +x
       for (const sx of [-1, 1]) {
         const s = sides[sx];
         const active = a && -a.side === sx;
@@ -364,12 +368,14 @@ export function createBike({ color = 0xd3202c, suit = 0x1d1e24, accent = 0xf2c21
         let raise, bend, sweep, gripTilt = 0.15, ext = 0;
         if (a.kind === 'fist') {
           // jab: fist cocked by the helmet, then driven straight out
-          if (p < h * 0.45) { const c = ease(p / (h * 0.45)); raise = lerp(-0.8, -0.45, c); bend = lerp(1.5, 2.35, c); }
-          else if (p < h) { ext = ease((p - h * 0.45) / (h * 0.55)); raise = lerp(-0.45, 0.05, ext); bend = lerp(2.35, 0, ext); }
-          else if (p < h + 0.18) { raise = 0.05; bend = 0; ext = 1; }
-          else { const r = ease((p - h - 0.18) / (1 - h - 0.18)); raise = lerp(0.05, -0.8, r); bend = lerp(0, 1.5, r); ext = 1 - r; }
-          sweep = 0.15;
-          bodyLean = -sx * 0.22 * ext;                // throw the shoulder into it
+          // the elbow stays low and never quite locks, so the arm reads as a punch rather than a held-out arm
+          if (p < h * 0.45) { const c = ease(p / (h * 0.45)); raise = lerp(-0.9, -0.7, c); bend = lerp(1.5, 2.3, c); }
+          else if (p < h) { ext = ease((p - h * 0.45) / (h * 0.55)); raise = lerp(-0.7, -0.22, ext); bend = lerp(2.3, 0.4, ext); }
+          else if (p < h + 0.18) { raise = -0.22; bend = 0.4; ext = 1; }
+          else { const r = ease((p - h - 0.18) / (1 - h - 0.18)); raise = lerp(-0.22, -0.9, r); bend = lerp(0.4, 1.5, r); ext = 1 - r; }
+          sweep = lerp(-0.25, 0.4, ext);              // drawn back, then driven forward and out
+          bodyLean = -sx * 0.26 * ext;                // throw the shoulder into it
+          reach = sx * ext;
         } else if (a.kind === 'bat') {
           raise = swingAngle(p, h);
           bend = 0.25;
@@ -393,6 +399,7 @@ export function createBike({ color = 0xd3202c, suit = 0x1d1e24, accent = 0xf2c21
         s.chain.visible = a.kind === 'chain';
       }
 
+      state.reach = reach;
       tilt.rotation.z = bike.lean + state.roll;
       rider.rotation.z = bike.lean * 0.18 + state.jolt + bodyLean;
       rider.position.x = -bike.lean * 0.1;

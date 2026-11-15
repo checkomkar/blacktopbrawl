@@ -47,6 +47,13 @@ const GAME_KEYS = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space', '
 window.addEventListener('keydown', (e) => {
   if (GAME_KEYS.includes(e.code)) e.preventDefault();
   if (e.repeat) return;
+  if (e.code === 'Escape' && performance.now() - lockLostAt < 300) return;   // this press already paused via the lock
+  if (e.code === 'Escape' && (paused || state === 'race' || state === 'countdown')) { setPaused(!paused); return; }
+  if (paused) {
+    if (e.code === 'Enter') { setPaused(false); startRace(); }
+    if (e.code === 'KeyQ') { setPaused(false); setState('title'); }
+    return;
+  }
   keys.add(e.code);
   audio.start();
   if (e.code === 'Enter') {
@@ -68,11 +75,56 @@ window.addEventListener('keydown', (e) => {
     const me = race.player;
     if (e.code === 'KeyR' && me.crash <= 0) bike.reset(bike.s, 0);
     const attack = ATTACK_KEYS[e.code];
-    if (attack) race.startAttack(me, attack);
+    if (attack) tryAttack(attack);
   }
 });
+// mouse: the wheel picks a move, left click throws it
+const MOVES = [['kick', 'KICK'], ['chain', 'CHAIN'], ['fist', 'PUNCH'], ['bat', 'BAT']];
+let move = 2, wheelAcc = 0;
+function selectMove(i) {
+  move = (i + MOVES.length) % MOVES.length;
+  document.querySelectorAll('#moves span').forEach((el, n) => el.classList.toggle('on', n === move));
+}
+window.addEventListener('wheel', (e) => {
+  if (paused || (state !== 'race' && state !== 'countdown')) return;
+  e.preventDefault();
+  // one notch of a wheel is ~100; a trackpad sends many small deltas, so add them up
+  wheelAcc += e.deltaMode === 1 ? e.deltaY * 33 : e.deltaY;
+  if (Math.abs(wheelAcc) >= 50) { selectMove(move + Math.sign(wheelAcc)); wheelAcc = 0; }
+}, { passive: false });
+// pointerdown rather than mousedown: it also fires for touchpad taps and pens, and is not swallowed by a drag
+window.addEventListener('pointerdown', (e) => {
+  if (!paused && (state === 'race' || state === 'countdown')) lockMouse();   // recapture if the lock was refused earlier
+  if (e.button !== 0 || paused || state !== 'race') return;
+  audio.start();
+  tryAttack(MOVES[move][0]);
+});
+window.addEventListener('mousedown', (e) => { if (state === 'race' || state === 'countdown') e.preventDefault(); });  // no text selection or drags
+window.addEventListener('dragstart', (e) => e.preventDefault());
+
+// While riding, the mouse is captured by the game (pointer lock): the cursor is hidden and cannot drift onto
+// the browser's tab bar, another window or a second monitor, where clicks and scrolling would miss the game.
+let lockLostAt = -1e9;
+const lockTarget = document.getElementById('game');
+const riding = () => !paused && (state === 'race' || state === 'countdown');
+function lockMouse() {
+  if (document.pointerLockElement === lockTarget || !lockTarget.requestPointerLock) return;
+  try { lockTarget.requestPointerLock()?.catch?.(() => {}); } catch { /* refused: the next click asks again */ }
+}
+function unlockMouse() { if (document.pointerLockElement) document.exitPointerLock(); }
+document.addEventListener('pointerlockchange', () => {
+  if (document.pointerLockElement) { if (!riding()) unlockMouse(); }
+  else if (riding()) { lockLostAt = performance.now(); setPaused(true); }          // the browser's own Escape releases the mouse without a key event
+});
+window.addEventListener('contextmenu', (e) => { if (state === 'race' || state === 'countdown') e.preventDefault(); });
+
+/** Throw a move now, or remember it briefly so a press made just before the last swing ends still counts. */
+let queued = null;
+function tryAttack(kind) {
+  queued = race.startAttack(race.player, kind) ? null : { kind, left: 0.35 };
+}
 window.addEventListener('keyup', (e) => keys.delete(e.code));
-window.addEventListener('blur', () => keys.clear());
+window.addEventListener('blur', () => { keys.clear(); if (state === 'race' || state === 'countdown') setPaused(true); });
 const down = (...codes) => codes.some((c) => keys.has(c));
 
 function readInput() {
@@ -173,9 +225,18 @@ function setCourse(step) {
   for (const el of document.querySelectorAll('.course span')) el.textContent = C.blurb.toUpperCase();
 }
 
+let paused = false;
+function setPaused(on) {
+  paused = on;
+  keys.clear();
+  document.body.classList.toggle('paused', on);
+  if (on || (state !== 'race' && state !== 'countdown')) unlockMouse(); else lockMouse();
+}
+
 function setState(s) {
   state = s;
   document.body.className = ['title', 'lineup', 'finished'].includes(s) ? s : 'riding';
+  if (s === 'countdown') lockMouse(); else if (s !== 'race') unlockMouse();
 }
 function startRace() {
   race.reset();
@@ -280,7 +341,10 @@ function updateView(dt) {
     // slow orbit around the grid
     orbit += dt * 0.18;
     track.sample(bike.s + 11, ahead);
-    cam.position.set(ahead.x + Math.sin(orbit) * 15, ahead.y + 3.2, ahead.z + Math.cos(orbit) * 15);
+    // an oval lined up with the road: long along it, narrow across, so it never swings into the roadside
+    const al = Math.cos(orbit) * 15, ac = Math.sin(orbit) * 8;
+    const fx = Math.sin(ahead.h), fz = Math.cos(ahead.h);
+    cam.position.set(ahead.x + fx * al - fz * ac, ahead.y + 3.2, ahead.z + fz * al + fx * ac);
     cam.lookAt(ahead.x, ahead.y + 0.9, ahead.z);
     cam.fov = 46;
   } else {
@@ -409,6 +473,10 @@ function tick(dt) {
     if (countdown <= 0) { setState('race'); flash('GO!'); }
   }
   readInput();
+  if (queued && state === 'race') {
+    queued.left -= dt;
+    if (race.startAttack(race.player, queued.kind) || queued.left <= 0) queued = null;
+  }
   if (state === 'title' || state === 'lineup') return;
   race.step(dt, input, state === 'race' || state === 'finished');
   if (state === 'race' && race.player.finishTime !== null) finishRace();
@@ -417,12 +485,14 @@ function tick(dt) {
 function frame(now) {
   const dt = Math.min(0.1, (now - last) / 1000);
   last = now;
-  acc += dt;
-  while (acc >= DT) { tick(DT); acc -= DT; }
-  drainEvents();
-  updateView(dt);
-  updateHud();
-  audio.update(bike.rpm, input.throttle, bike.v / VMAX, state !== 'title' && state !== 'lineup', siren);
+  if (!paused) {
+    acc += dt;
+    while (acc >= DT) { tick(DT); acc -= DT; }
+    drainEvents();
+    updateView(dt);
+    updateHud();
+  }
+  audio.update(bike.rpm, input.throttle, bike.v / VMAX, !paused && state !== 'title' && state !== 'lineup', siren);
   world.render();
   requestAnimationFrame(frame);
 }
@@ -431,4 +501,7 @@ requestAnimationFrame(frame);
 // debug handle for automated checks
 setCourse(0);
 
-window.__game = { bike, get track() { return track; }, race, keys, get state() { return state; }, tick, world, updateView, setCourse, drainEvents, updateHud };
+document.getElementById('moves').replaceChildren(...MOVES.map(([, label]) => Object.assign(document.createElement('span'), { textContent: label })));
+selectMove(move);
+
+window.__game = { get move() { return MOVES[move][0]; }, bike, get track() { return track; }, race, keys, get state() { return state; }, get paused() { return paused; }, tick, world, updateView, setCourse, drainEvents, updateHud };
