@@ -1,0 +1,178 @@
+{
+ "credit": {
+  "author": "VTX (https://sketchfab.com/VTX_car)",
+  "license": "CC-BY-NC-SA-4.0 (http://creativecommons.org/licenses/by-nc-sa/4.0/)",
+  "source": "https://sketchfab.com/3d-models/bmw-s1000-rr-1873aed292d6465694119bd81860a0c2",
+  "title": "BMW S1000 RR"
+ },
+ "axle": {
+  "front": {
+   "y": 0.2818026535282991,
+   "z": 0.72,
+   "r": 0.2818026535282991
+  },
+  "rear": {
+   "y": 0.2997311102354957,
+   "z": -0.68,
+   "r": 0.2995696874363326
+  }
+ },
+ "meshes": [
+  {
+   "part": "body",
+   "mat": "black",
+   "pos": [
+    0,
+    19833
+   ],
+   "idx": [
+    79332,
+    52881
+   ]
+  },
+  {
+   "part": "front",
+   "mat": "darkmetal",
+   "pos": [
+    290856,
+    240
+   ],
+   "idx": [
+    291816,
+    444
+   ]
+  },
+  {
+   "part": "rear",
+   "mat": "darkmetal",
+   "pos": [
+    293592,
+    270
+   ],
+   "idx": [
+    294672,
+    288
+   ]
+  },
+  {
+   "part": "body",
+   "mat": "steel",
+   "pos": [
+    295824,
+    6747
+   ],
+   "idx": [
+    322812,
+    14787
+   ]
+  },
+  {
+   "part": "body",
+   "mat": "paint",
+   "pos": [
+    381960,
+    11892
+   ],
+   "idx": [
+    429528,
+    22830
+   ]
+  },
+  {
+   "part": "body",
+   "mat": "tail",
+   "pos": [
+    520848,
+    213
+   ],
+   "idx": [
+    521700,
+    264
+   ]
+  },
+  {
+   "part": "body",
+   "mat": "darkmetal",
+   "pos": [
+    522756,
+    17988
+   ],
+   "idx": [
+    594708,
+    23724
+   ]
+  },
+  {
+   "part": "body",
+   "mat": "glass",
+   "pos": [
+    689604,
+    2097
+   ],
+   "idx": [
+    697992,
+    4098
+   ]
+  },
+  {
+   "part": "body",
+   "mat": "lamp",
+   "pos": [
+    714384,
+    966
+   ],
+   "idx": [
+    718248,
+    1368
+   ]
+  },
+  {
+   "part": "front",
+   "mat": "black",
+   "pos": [
+    723720,
+    678
+   ],
+   "idx": [
+    726432,
+    1284
+   ]
+  },
+  {
+   "part": "front",
+   "mat": "tyre",
+   "pos": [
+    731568,
+    471
+   ],
+   "idx": [
+    733452,
+    840
+   ]
+  },
+  {
+   "part": "rear",
+   "mat": "black",
+   "pos": [
+    736812,
+    651
+   ],
+   "idx": [
+    739416,
+    1293
+   ]
+  },
+  {
+   "part": "rear",
+   "mat": "tyre",
+   "pos": [
+    744588,
+    474
+   ],
+   "idx": [
+    746484,
+    843
+   ]
+  }
+ ]
+}

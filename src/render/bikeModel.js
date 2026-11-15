@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { createRig } from './riderAsset.js';
 
 // Procedural sport bike + rider. Model faces +Z, origin at the ground contact line.
 // Note: the sim's "right" (d > 0) is the model's -X.
@@ -122,7 +123,9 @@ export function createBike({ color = 0xd3202c, suit = 0x1d1e24, accent = 0xf2c21
   const visorM = M(0x090b10, { roughness: 0.05, metalness: 0.8 });
   const woodM = M(0xc89b5a, { roughness: 0.6 });
 
-  const add = (geo, mat, x, y, z, rx = 0, ry = 0, rz = 0, parent = tilt) => {
+  const chassis = new THREE.Group();       // procedural bodywork, hidden when a mesh asset is fitted
+  tilt.add(chassis);
+  const add = (geo, mat, x, y, z, rx = 0, ry = 0, rz = 0, parent = chassis) => {
     const m = new THREE.Mesh(geo, mat);
     m.position.set(x, y, z);
     m.rotation.set(rx, ry, rz);
@@ -130,6 +133,8 @@ export function createBike({ color = 0xd3202c, suit = 0x1d1e24, accent = 0xf2c21
     parent.add(m);
     return m;
   };
+  const bodyParts = [];                    // primitive body + limbs, hidden when a skinned rider is fitted
+  const skin = (m) => (bodyParts.push(m), m);
   const limb = (a, b, r, mat, parent) => {
     const va = new THREE.Vector3(...a), vb = new THREE.Vector3(...b);
     const len = va.distanceTo(vb);
@@ -138,6 +143,7 @@ export function createBike({ color = 0xd3202c, suit = 0x1d1e24, accent = 0xf2c21
     m.quaternion.setFromUnitVectors(UP, vb.sub(va).normalize());
     m.castShadow = true;
     parent.add(m);
+    bodyParts.push(m);
     return m;
   };
 
@@ -178,7 +184,7 @@ export function createBike({ color = 0xd3202c, suit = 0x1d1e24, accent = 0xf2c21
   const rider = new THREE.Group();
   tilt.add(rider);
   limb([0, 0.96, -0.3], [0, 1.3, 0.12], 0.155, suitM, rider);                 // torso
-  add(new THREE.BoxGeometry(0.24, 0.3, 0.03), accentM, 0, 1.2, -0.19, 0.89, 0, 0, rider); // back stripe
+  skin(add(new THREE.BoxGeometry(0.24, 0.3, 0.03), accentM, 0, 1.2, -0.19, 0.89, 0, 0, rider)); // back stripe
 
   // full-face race helmet: painted shell, rounded chin piece, wraparound visor, rear spoiler
   const hr = 0.135 * headScale;
@@ -205,7 +211,7 @@ export function createBike({ color = 0xd3202c, suit = 0x1d1e24, accent = 0xf2c21
     limb([sx * 0.29, 1.1, 0.3], [sx * 0.27, 1.0, 0.45], 0.048, suitM, arm);  // forearm
     limb([sx * 0.12, 0.92, -0.3], [sx * 0.2, 0.74, 0.1], 0.08, suitM, leg);  // thigh
     limb([sx * 0.2, 0.74, 0.1], [sx * 0.19, 0.4, -0.2], 0.06, suitM, leg);   // shin
-    add(new THREE.BoxGeometry(0.09, 0.08, 0.24), dark, sx * 0.19, 0.36, -0.16, 0, 0, 0, leg); // boot
+    skin(add(new THREE.BoxGeometry(0.09, 0.08, 0.24), dark, sx * 0.19, 0.36, -0.16, 0, 0, 0, leg)); // boot
 
     // striking arm: shoulder -> elbow -> glove, weapon held in the fist
     const strike = new THREE.Group();
@@ -217,7 +223,7 @@ export function createBike({ color = 0xd3202c, suit = 0x1d1e24, accent = 0xf2c21
     elbow.position.set(sx * 0.32, 0, 0);
     strike.add(elbow);
     limb([0, 0, 0], [sx * 0.3, 0, 0], 0.052, suitM, elbow);
-    add(new THREE.SphereGeometry(0.095, 12, 10), dark, sx * 0.34, 0, 0, 0, 0, 0, elbow);      // big glove
+    skin(add(new THREE.SphereGeometry(0.095, 12, 10), dark, sx * 0.34, 0, 0, 0, 0, 0, elbow));      // big glove
     const grip = new THREE.Group();
     grip.position.set(sx * 0.34, 0, 0);
     elbow.add(grip);
@@ -248,8 +254,8 @@ export function createBike({ color = 0xd3202c, suit = 0x1d1e24, accent = 0xf2c21
     knee.position.set(sx * 0.44, 0, 0);
     kick.add(knee);
     limb([0, 0, 0], [sx * 0.42, 0, 0], 0.07, suitM, knee);
-    add(new THREE.BoxGeometry(0.13, 0.36, 0.17), dark, sx * 0.47, 0.07, 0, 0, 0, 0, knee);    // boot, toes up
-    add(new THREE.BoxGeometry(0.03, 0.36, 0.17), accentM, sx * 0.55, 0.07, 0, 0, 0, 0, knee); // sole
+    skin(add(new THREE.BoxGeometry(0.13, 0.36, 0.17), dark, sx * 0.47, 0.07, 0, 0, 0, 0, knee));    // boot, toes up
+    skin(add(new THREE.BoxGeometry(0.03, 0.36, 0.17), accentM, sx * 0.55, 0.07, 0, 0, 0, 0, knee)); // sole
     sides[sx] = { arm, leg, strike, elbow, grip, bat, chain, links, kick, knee };
   }
 
@@ -259,8 +265,59 @@ export function createBike({ color = 0xd3202c, suit = 0x1d1e24, accent = 0xf2c21
 
   const state = { roll: 0, jolt: 0 };
 
+  // --- skinned rider (optional): posed from the same joints the primitive limbs use
+  let rig = null;
+  const POSE = {
+    seat: new THREE.Vector3(0, 0.93, -0.28), torso: new THREE.Vector3(0, 0.66, 0.75), look: new THREE.Vector3(0, 0.97, 0.25),
+    hand: [0.27, 1.0, 0.45], elbow: [0.42, 0.95, 0.15], foot: [0.19, 0.42, -0.2], knee: [0.26, 0.8, 0.25],
+  };
+  const wq = new THREE.Quaternion(), v1 = new THREE.Vector3(), v2 = new THREE.Vector3();
+  const poseRig = (a) => {
+    rider.updateWorldMatrix(true, true);
+    rider.getWorldQuaternion(wq);
+    rig.body(POSE.seat, v1.copy(POSE.torso).applyQuaternion(wq), v2.copy(POSE.look).applyQuaternion(wq));
+    for (const sx of [-1, 1]) {
+      const s = sides[sx];
+      const active = a && -a.side === sx, isKick = !!active && a.kind === 'kick', isArm = !!active && !isKick;
+      // arm: ride the bars, or follow the striking arm's glove
+      if (isArm) { s.elbow.localToWorld(v1.set(sx * 0.34, 0, 0)); s.elbow.getWorldPosition(v2); }
+      else { rider.localToWorld(v1.set(sx * POSE.hand[0], POSE.hand[1], POSE.hand[2])); rider.localToWorld(v2.set(sx * POSE.elbow[0], POSE.elbow[1], POSE.elbow[2])); }
+      rig.arm(sx, v1, v2);
+      if (isArm) s.grip.position.copy(s.elbow.worldToLocal(rig.hand(sx, v1)));   // weapon stays in the fist
+      // leg: foot on the peg, or follow the kicking boot
+      if (isKick) { s.knee.localToWorld(v1.set(sx * 0.42, 0, 0)); s.knee.getWorldPosition(v2); }
+      else { rider.localToWorld(v1.set(sx * POSE.foot[0], POSE.foot[1], POSE.foot[2])); rider.localToWorld(v2.set(sx * POSE.knee[0], POSE.knee[1], POSE.knee[2])); }
+      rig.leg(sx, v1, v2);
+    }
+    rider.worldToLocal(rig.head(v1));
+    head.position.set(v1.x, v1.y + 0.1, v1.z + 0.03);
+  };
+
   return {
     root, tilt, rider, pitch: 0, spin: 0,
+    /** Swap the primitive bike for a loaded mesh (see bikeAsset.js). Paint takes this rider's colour. */
+    useAsset(asset) {
+      chassis.visible = false;
+      const fit = (list, parent) => {
+        for (const { geo, mat } of list) {
+          const m = new THREE.Mesh(geo, mat ?? paintM);
+          m.castShadow = true;
+          parent.add(m);
+        }
+      };
+      fit(asset.parts.body, tilt);
+      for (const [g, key] of [[front, 'front'], [rear, 'rear']]) {
+        g.clear();
+        g.position.set(0, asset.axle[key].y, asset.axle[key].z);
+        fit(asset.parts[key], g);
+      }
+    },
+    /** Swap the primitive body for a skinned character (see riderAsset.js). The helmet and weapons stay. */
+    useRider(asset) {
+      rig = createRig(asset, suit);
+      rider.add(rig.root);
+      for (const m of bodyParts) m.visible = false;
+    },
     /** Knock the rider sideways for a moment (side: +1 = toward sim right). */
     jolt(side) { state.jolt = side * 0.55; },
     /** Apply sim state to the model. `f` is the race entrant (attack, crash, carry). */
@@ -342,6 +399,7 @@ export function createBike({ color = 0xd3202c, suit = 0x1d1e24, accent = 0xf2c21
       rider.position.y = down ? 0.05 : 0;
       backBat.visible = f.carry.includes('bat') && !(a && a.kind === 'bat');
       backChain.visible = f.carry.includes('chain') && !(a && a.kind === 'chain');
+      if (rig) poseRig(a);
     },
   };
 }

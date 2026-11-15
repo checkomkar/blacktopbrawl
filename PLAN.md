@@ -45,6 +45,12 @@ of any existing title.
 - Phase 5: started. Two courses: Pine Valley (country) and Rivet Town (shops, apartment blocks,
   suburban homes, four police posts). Defined in `src/sim/courses.js`.
 
+- Branch `bike-asset`: real meshes instead of primitives. `tools/build-bike.mjs` bakes and simplifies a
+  downloaded glTF bike (313k -> ~42k triangles, wheels split off, paint takes the rider colour) and
+  `tools/build-rider.mjs` slims a Mixamo-rigged rider; the rider is posed with two-bone IK driven by the
+  existing attack animations. Credits and licences in `public/models/CREDITS.md` - the bike model is
+  non-commercial only. `?bike=classic` in the URL switches back to the primitive bikes.
+
 ## Phase 1 scope (done when)
 
 - Seeded procedural course about 6.4 km with smoothed curves, rolling hills, jump crests.

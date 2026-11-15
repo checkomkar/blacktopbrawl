@@ -7,6 +7,8 @@ import { COP } from './sim/cast.js';
 import { createWorld } from './render/world.js';
 import { createBike } from './render/bikeModel.js';
 import { createAudio } from './audio.js';
+import { loadBikeAsset } from './render/bikeAsset.js';
+import { loadRiderAsset } from './render/riderAsset.js';
 
 const $ = (id) => document.getElementById(id);
 const tracks = {};
@@ -31,6 +33,11 @@ for (const e of race.riders) {
   });
 }
 const audio = createAudio();
+// detailed bike mesh, fitted once it has loaded (add ?bike=classic to the URL to keep the primitive bikes)
+if (new URLSearchParams(location.search).get('bike') !== 'classic') {
+  loadBikeAsset().then((asset) => { for (const e of race.riders) e.model.useAsset(asset); }).catch((err) => console.warn('bike mesh not loaded, using primitive bikes', err));
+  loadRiderAsset().then((asset) => { for (const e of race.riders) e.model.useRider(asset); }).catch((err) => console.warn('rider mesh not loaded, using primitive riders', err));
+}
 
 // ---------------------------------------------------------------- input
 const keys = new Set();
