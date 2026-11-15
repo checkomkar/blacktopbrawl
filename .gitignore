@@ -1,0 +1,4 @@
+node_modules
+dist
+# raw downloaded assets (large, third-party licences)
+assets/

@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Blacktop Brawl</title>
+<style>
+  :root { --yellow: #f2c21a; --red: #e0301e; --ink: #121216; --paper: #f4f2ea; }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #000; }
+  body { font-family: Impact, Haettenschweiler, "Arial Narrow Bold", "Arial Black", sans-serif; color: var(--paper); font-style: italic; letter-spacing: 0.02em; user-select: none; }
+  canvas#game { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+  .hud { position: fixed; pointer-events: none; text-shadow: 0 2px 0 rgba(0,0,0,.55); transition: opacity .3s; }
+  body:not(.riding) .hud { opacity: 0; }
+  .plate { background: rgba(18,18,22,.72); transform: skewX(-10deg); padding: 8px 18px; border-left: 5px solid var(--yellow); }
+  .plate > * { transform: skewX(10deg); }
+  .label { font-size: 13px; letter-spacing: .18em; color: var(--yellow); font-style: normal; }
+
+  #timer { top: 18px; left: 22px; }
+  #timer .val { font-size: 34px; font-variant-numeric: tabular-nums; line-height: 1; }
+  #timer .best { font-size: 14px; opacity: .75; font-style: normal; letter-spacing: .08em; }
+
+  #progress { top: 26px; left: 50%; width: min(46vw, 560px); transform: translateX(-50%); }
+  #progress .bar { height: 8px; background: rgba(18,18,22,.72); transform: skewX(-20deg); position: relative; }
+  #progress .fill { position: absolute; inset: 0 auto 0 0; background: var(--yellow); width: 0; }
+  #progress .ends { display: flex; justify-content: space-between; font-size: 12px; letter-spacing: .18em; margin-top: 5px; font-style: normal; }
+
+  #speedo { right: 24px; bottom: 22px; text-align: right; }
+  #speedo .plate { border-left: none; border-right: 5px solid var(--red); padding: 6px 20px 10px 26px; }
+  #speed { font-size: 84px; line-height: .95; font-variant-numeric: tabular-nums; }
+  #speedo .row { display: flex; align-items: baseline; gap: 14px; justify-content: flex-end; }
+  #gear { font-size: 40px; color: var(--yellow); }
+  #rpm { height: 9px; width: 230px; background: rgba(255,255,255,.14); margin-top: 6px; position: relative; }
+  #rpmfill { position: absolute; inset: 0 auto 0 0; width: 0; background: linear-gradient(90deg, var(--yellow) 0 70%, var(--red) 88%); background-size: 230px 100%; }
+
+  #banner { position: fixed; inset: 0; display: grid; place-items: center; pointer-events: none; font-size: clamp(90px, 18vw, 220px); color: var(--yellow); -webkit-text-stroke: 4px var(--ink); text-shadow: 0 8px 0 var(--ink); opacity: 0; }
+  #banner.pop { animation: pop .9s ease-out; }
+  @keyframes pop { 0% { opacity: 1; transform: scale(1.5); } 20% { transform: scale(1); } 75% { opacity: 1; } 100% { opacity: 0; transform: scale(.92); } }
+
+  .screen { position: fixed; inset: 0; display: none; flex-direction: column; justify-content: flex-end; padding: clamp(24px, 6vw, 80px); background: linear-gradient(0deg, rgba(10,10,12,.86), rgba(10,10,12,.15) 55%, rgba(10,10,12,0)); }
+  body.title #title, body.finished #finish { display: flex; }
+  h1 { margin: 0; font-size: clamp(64px, 12vw, 170px); line-height: .86; font-weight: 400; text-transform: uppercase; text-shadow: 0 6px 0 var(--ink); }
+  h1 b { color: var(--yellow); font-weight: 400; display: block; }
+  .tag { font-size: clamp(15px, 1.6vw, 20px); letter-spacing: .22em; color: var(--yellow); margin: 0 0 14px; font-style: normal; }
+  .keys { display: flex; flex-wrap: wrap; gap: 8px 26px; margin: 22px 0 0; padding: 0; list-style: none; font: 15px/1.4 system-ui, sans-serif; font-style: normal; letter-spacing: 0; }
+  .keys kbd { font: 600 13px system-ui, sans-serif; background: var(--paper); color: var(--ink); padding: 2px 7px; border-radius: 3px; margin-right: 6px; }
+  .go { margin-top: 26px; font-size: clamp(22px, 2.6vw, 34px); animation: blink 1.1s steps(2) infinite; }
+  @keyframes blink { 50% { opacity: .25; } }
+  #finish .stats { display: flex; gap: 40px; margin-top: 18px; }
+  #finish .stats div { font-size: clamp(24px, 3vw, 40px); font-variant-numeric: tabular-nums; }
+  #newbest { color: var(--red); display: none; }
+  #pos { top: 18px; right: 22px; text-align: right; }
+  #pos .plate { border-left: none; border-right: 5px solid var(--yellow); }
+  #pos .val { font-size: 46px; line-height: 1; } #pos .val small { font-size: 22px; opacity: .7; }
+  .picks { display: flex; flex-wrap: wrap; gap: 6px 44px; }
+  .diff { display: flex; align-items: center; gap: 10px; margin-top: 22px; font-size: 30px; }
+  .diff b { font-weight: 400; min-width: 4.2em; text-align: center; color: #58c13b; }
+  .diff.course b { color: var(--paper); min-width: 6.4em; }
+  #police { left: 50%; bottom: 26px; transform: translateX(-50%) skewX(-10deg); padding: 6px 22px; font-size: 30px; white-space: nowrap; background: #c21a1a; display: none; }
+  #police.on { display: block; animation: cops .5s steps(2) infinite; }
+  @keyframes cops { 50% { background: #1c4fd6; } }
+  .diff[data-level="normal"] b { color: var(--yellow); } .diff[data-level="hard"] b { color: var(--red); }
+  .diff kbd { font: 600 14px system-ui, sans-serif; font-style: normal; background: var(--paper); color: var(--ink); padding: 3px 8px; border-radius: 3px; }
+  .diff span { font-size: 13px; letter-spacing: .18em; font-style: normal; opacity: .8; }
+  #vitals { left: 22px; bottom: 22px; display: grid; gap: 8px; }
+  .vital { display: flex; align-items: center; gap: 10px; }
+  .vital .portrait { font-size: 40px; border-width: 2px; }
+  .vital .who { font-size: 15px; letter-spacing: .12em; font-style: normal; }
+  .hp { width: 220px; height: 12px; background: rgba(18,18,22,.72); transform: skewX(-20deg); position: relative; margin-top: 3px; }
+  .hp i { position: absolute; inset: 0 auto 0 0; width: 100%; background: #58c13b; transition: width .12s; }
+  .hp.low i { background: var(--red); }
+  #foe { visibility: hidden; } #foe.on { visibility: visible; }
+  #weapon { color: var(--yellow); }
+  #hurt { position: fixed; inset: 0; pointer-events: none; opacity: 0; box-shadow: inset 0 0 140px 40px rgba(224,48,30,.85); }
+  #hurt.on { animation: hurt .45s ease-out; }
+  @keyframes hurt { 0% { opacity: 1; } 100% { opacity: 0; } }
+  #toast { position: fixed; top: 96px; left: 50%; transform: translateX(-50%) skewX(-10deg); display: flex; align-items: center; gap: 12px; background: rgba(18,18,22,.82); border-left: 5px solid var(--yellow); padding: 6px 20px 6px 8px; font-size: 24px; opacity: 0; pointer-events: none; white-space: nowrap; }
+  #toast.bad { border-color: var(--red); }
+  #toast.show { animation: toast 2.2s ease-out; }
+  @keyframes toast { 0% { opacity: 0; top: 80px; } 12% { opacity: 1; top: 96px; } 80% { opacity: 1; } 100% { opacity: 0; } }
+  .portrait { --c: #555; width: 1em; height: 1em; font-size: 44px; flex: none; display: grid; place-items: center; overflow: hidden; background: var(--c); border: 3px solid var(--paper); border-radius: 50%; box-sizing: border-box; }
+  .portrait > span { font-size: .42em; font-style: normal; color: #fff; text-shadow: 0 1px 2px #000; }
+  .portrait img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  body.lineup #lineup { display: flex; }
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 14px; margin-top: 20px; max-width: 1100px; }
+  .card { background: rgba(18,18,22,.78); border-top: 5px solid var(--c, var(--yellow)); padding: 14px; }
+  .card .portrait { font-size: clamp(84px, 9vw, 128px); border-radius: 6px; margin-bottom: 10px; }
+  .card .name { font-size: 24px; line-height: 1; }
+  .card .line { font: italic 14px/1.35 Georgia, serif; opacity: .85; margin-top: 6px; letter-spacing: 0; }
+  h2 { margin: 0; font-weight: 400; font-size: clamp(44px, 7vw, 96px); line-height: .9; text-transform: uppercase; text-shadow: 0 5px 0 var(--ink); }
+  #results { list-style: none; margin: 18px 0 0; padding: 0; display: grid; gap: 5px; max-width: 520px; }
+  #results li { display: flex; align-items: center; gap: 12px; background: rgba(18,18,22,.72); padding: 4px 14px 4px 8px; font-size: 22px; }
+  #results li.me { background: var(--yellow); color: var(--ink); }
+  #results .rank { width: 1.4em; text-align: center; } #results .t { margin-left: auto; font-variant-numeric: tabular-nums; }
+  #results .portrait { font-size: 36px; border-width: 2px; }
+  @media (prefers-reduced-motion: reduce) { .go, #banner.pop { animation: none; } #toast.show { animation: none; opacity: 1; } }
+</style>
+</head>
+<body class="title">
+<canvas id="game"></canvas>
+
+<div id="timer" class="hud"><div class="plate"><div><div class="label">TIME</div><div class="val" id="time">0:00.0</div><div class="best" id="best"></div></div></div></div>
+<div id="progress" class="hud"><div class="bar"><div class="fill" id="progfill"></div></div><div class="ends"><span>START</span><span id="dist">0.0 KM</span><span>FINISH</span></div></div>
+<div id="speedo" class="hud"><div class="plate"><div>
+  <div class="row"><span id="gear">1</span><span id="speed">0</span></div>
+  <div class="label">KM/H</div>
+  <div id="rpm"><div id="rpmfill"></div></div>
+</div></div></div>
+
+<div id="pos" class="hud"><div class="plate"><div><div class="label">POSITION</div><div class="val"><span id="place">6</span><small id="of">/6</small></div></div></div></div>
+<div id="vitals" class="hud">
+  <div class="vital" id="foe"><span id="foeface"></span><div><div class="who" id="foename"></div><div class="hp" id="foehp"><i></i></div></div></div>
+  <div class="vital"><div><div class="who">YOU · <span id="weapon">J PUNCH · K KICK · L BAT · I CHAIN</span></div><div class="hp" id="myhp"><i></i></div></div></div>
+</div>
+<div id="police" class="hud">POLICE · <span id="copdist"></span></div>
+<div id="hurt"></div>
+<div id="toast"></div>
+<div id="banner"></div>
+
+<section id="title" class="screen">
+  <p class="tag">PROTOTYPE · PHASE 4 · COPS AND TOWNS</p>
+  <h1>Blacktop <b>Brawl</b></h1>
+  <ul class="keys">
+    <li><kbd>W</kbd><kbd>↑</kbd>Throttle</li>
+    <li><kbd>S</kbd><kbd>↓</kbd>Brake</li>
+    <li><kbd>A</kbd><kbd>D</kbd><kbd>←</kbd><kbd>→</kbd>Steer</li>
+    <li><kbd>J</kbd>Punch</li>
+    <li><kbd>K</kbd>Kick</li>
+    <li><kbd>L</kbd>Bat</li>
+    <li><kbd>I</kbd>Chain</li>
+    <li><kbd>C</kbd>Camera view</li>
+    <li><kbd>↑</kbd><kbd>↓</kbd>Pick course (here)</li>
+    <li><kbd>R</kbd>Reset to road</li>
+    <li><kbd>M</kbd>Mute</li>
+  </ul>
+  <div class="picks">
+    <div class="diff course"><kbd>↑</kbd><b></b><kbd>↓</kbd><span></span></div>
+    <div class="diff level"><kbd>←</kbd><b>EASY</b><kbd>→</kbd><span>DIFFICULTY</span></div>
+  </div>
+  <div class="go">PRESS ENTER TO RIDE</div>
+</section>
+
+<section id="lineup" class="screen">
+  <p class="tag">TODAY'S COMPETITION</p>
+  <h2>Meet the pack</h2>
+  <div class="cards" id="cards"></div>
+  <div class="picks">
+    <div class="diff course"><kbd>↑</kbd><b></b><kbd>↓</kbd><span></span></div>
+    <div class="diff level"><kbd>←</kbd><b>EASY</b><kbd>→</kbd><span>DIFFICULTY</span></div>
+  </div>
+  <div class="go">PRESS ENTER TO START</div>
+</section>
+
+<section id="finish" class="screen">
+  <p class="tag"><span id="ftag">COURSE COMPLETE</span> <span id="newbest">· NEW BEST</span></p>
+  <h2 id="fplace"></h2>
+  <ol id="results"></ol>
+  <div class="stats">
+    <div><div class="label">YOUR TIME</div><span id="ftime"></span></div>
+    <div><div class="label">BEST</div><span id="fbest"></span></div>
+  </div>
+  <div class="go">PRESS ENTER TO RIDE AGAIN</div>
+</section>
+
+<script type="module" src="/src/main.js"></script>
+</body>
+</html>

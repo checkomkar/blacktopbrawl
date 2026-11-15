@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+<defs><linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3b1d5e"/><stop offset=".6" stop-color="#c2456b"/><stop offset="1" stop-color="#f6a23c"/></linearGradient></defs>
+<rect width="200" height="200" fill="url(#sky)"/>
+<circle cx="160" cy="58" r="26" fill="#ffd27a" opacity=".5"/>
+<g stroke="#1c1024" stroke-width="3" stroke-linejoin="round" stroke-linecap="round">
+  <path d="M34 200 Q38 174 78 168 L122 168 Q162 174 166 200Z" fill="#6b1f2a"/>
+  <g fill="none" stroke="#4f141d" stroke-width="1.5"><path d="M46 200 L70 174"/><path d="M62 200 L80 180"/><path d="M154 200 L130 174"/><path d="M138 200 L120 180"/></g>
+  <path d="M84 164 Q100 172 116 164 L113 197 Q100 202 87 197Z" fill="#efe6cf"/>
+  <circle cx="100" cy="180" r="3.500" fill="#c0392b" stroke-width="1.5"/>
+  <g fill="#f1cfb4"><ellipse cx="68" cy="98" rx="6" ry="11"/><ellipse cx="132" cy="98" rx="6" ry="11"/></g>
+  <path d="M70 62 Q70 30 100 30 Q130 30 130 62 L128 122 Q124 160 100 172 Q76 160 72 122Z" fill="#f1cfb4"/>
+  <g fill="#7a4a24"><path d="M65 66 L61 112 Q67 122 73 110 L73 68Z"/><path d="M135 66 L139 112 Q133 122 127 110 L127 68Z"/><path d="M64 72 Q58 16 100 16 Q142 16 136 72 Q120 54 100 54 Q80 54 64 72Z"/></g>
+  <path d="M64 40 Q100 24 136 40" fill="none" stroke="#3a2414" stroke-width="6"/>
+  <g fill="#9fd3e8" stroke="#caa24a" stroke-width="4"><ellipse cx="83" cy="36" rx="12" ry="10"/><ellipse cx="117" cy="36" rx="12" ry="10"/></g>
+  <g fill="none" stroke="#fff" stroke-width="2" opacity=".7"><path d="M76 33 Q80 29 86 30"/><path d="M110 33 Q114 29 120 30"/></g>
+  <g fill="#fff" stroke-width="2"><path d="M77 90 Q87 85 97 90 Q87 95 77 90Z"/><path d="M104 88 Q114 83 124 88 Q114 93 104 88Z"/></g>
+  <g fill="#1c1024" stroke="none"><circle cx="88" cy="90.500" r="2.500"/><circle cx="115" cy="88.500" r="2.500"/></g>
+  <g fill="none"><path d="M76 88 Q87 81 98 88"/><path d="M103 86 Q114 79 125 86"/><path d="M75 77 Q86 68 97 77"/><path d="M103 72 Q114 61 126 71"/></g>
+  <circle cx="114" cy="88" r="13.500" fill="#dff3ff" fill-opacity=".35" stroke="#caa24a"/>
+  <path d="M125 97 Q138 132 120 168" fill="none" stroke="#caa24a" stroke-width="1.500"/>
+  <path d="M100 92 Q93 118 97 125 Q104 130 109 123" fill="#e8bfa0"/>
+  <path d="M100 131 Q84 123 66 135 Q46 147 37 128 Q33 116 44 113 Q40 126 51 128 Q64 130 78 119 Q92 112 100 123 Q108 112 122 119 Q136 130 149 128 Q160 126 156 113 Q167 116 163 128 Q154 147 134 135 Q116 123 100 131Z" fill="#3a2414"/>
+  <g fill="none" stroke-width="2"><path d="M91 144 Q100 148 111 141"/><path d="M96 158 Q100 160 104 158"/></g>
+</g>
+</svg>
