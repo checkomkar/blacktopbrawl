@@ -35,9 +35,32 @@ for (const e of race.riders) {
 }
 const audio = createAudio();
 // detailed bike mesh, fitted once it has loaded (add ?bike=classic to the URL to keep the primitive bikes)
+// ---------------------------------------------------------------- loading screen
+// The splash art stays up while the models load; a bar tracks the steps, then any key or click starts the game.
+let booting = true, bootReady = false;
+const boot = { done: 0, total: 0 };
+const splash = document.getElementById('splash');
+function bootStep(promise) {
+  boot.total++;
+  const tick = () => {
+    boot.done++;
+    document.getElementById('loadfill').style.width = `${Math.round((boot.done / boot.total) * 100)}%`;
+    if (boot.done === boot.total) { bootReady = true; splash.classList.add('ready'); }
+  };
+  return promise.then((v) => { tick(); return v; }, (err) => { tick(); throw err; });
+}
+function dismissSplash() {
+  if (!bootReady || !booting) return;
+  booting = false;
+  splash.classList.add('gone');
+  setTimeout(() => splash.remove(), 700);
+}
+bootStep(new Promise((r) => setTimeout(r, 1500)));      // long enough to see the art even on a fast connection
+bootStep(new Promise((r) => { const im = new Image(); im.onload = im.onerror = r; im.src = '/splash.webp'; }));
+
 if (new URLSearchParams(location.search).get('bike') !== 'classic') {
-  loadBikeAsset().then((asset) => { for (const e of race.riders) e.model.useAsset(asset); }).catch((err) => console.warn('bike mesh not loaded, using primitive bikes', err));
-  loadRiderAsset().then((asset) => { for (const e of race.riders) e.model.useRider(asset); }).catch((err) => console.warn('rider mesh not loaded, using primitive riders', err));
+  bootStep(loadBikeAsset()).then((asset) => { for (const e of race.riders) e.model.useAsset(asset); }).catch((err) => console.warn('bike mesh not loaded, using primitive bikes', err));
+  bootStep(loadRiderAsset()).then((asset) => { for (const e of race.riders) e.model.useRider(asset); }).catch((err) => console.warn('rider mesh not loaded, using primitive riders', err));
 }
 
 // ---------------------------------------------------------------- input
@@ -48,6 +71,7 @@ const GAME_KEYS = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space', '
 window.addEventListener('keydown', (e) => {
   if (GAME_KEYS.includes(e.code)) e.preventDefault();
   if (e.repeat) return;
+  if (booting) { audio.start(); dismissSplash(); return; }
   if (e.code === 'Escape' && performance.now() - lockLostAt < 300) return;   // this press already paused via the lock
   if (e.code === 'Escape' && (paused || state === 'race' || state === 'countdown')) { setPaused(!paused); return; }
   if (paused) {
@@ -95,6 +119,7 @@ window.addEventListener('wheel', (e) => {
 }, { passive: false });
 // pointerdown rather than mousedown: it also fires for touchpad taps and pens, and is not swallowed by a drag
 window.addEventListener('pointerdown', (e) => {
+  if (booting) { audio.start(); dismissSplash(); return; }
   if (!paused && (state === 'race' || state === 'countdown')) lockMouse();   // recapture if the lock was refused earlier
   if (e.button !== 0 || paused || state !== 'race') return;
   audio.start();
@@ -510,4 +535,4 @@ selectMove(move);
 
 initAnalytics();
 
-window.__game = { get move() { return MOVES[move][0]; }, bike, get track() { return track; }, race, keys, get state() { return state; }, get paused() { return paused; }, tick, world, updateView, setCourse, drainEvents, updateHud };
+window.__game = { get booting() { return booting; }, get move() { return MOVES[move][0]; }, bike, get track() { return track; }, race, keys, get state() { return state; }, get paused() { return paused; }, tick, world, updateView, setCourse, drainEvents, updateHud };

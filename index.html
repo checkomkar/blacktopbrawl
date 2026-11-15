@@ -66,6 +66,18 @@
   #consent p { margin: 0 0 10px; }
   #consent button { font: 600 14px system-ui, sans-serif; padding: 6px 14px; margin-right: 8px; border: 0; border-radius: 3px; cursor: pointer; background: var(--paper); color: var(--ink); }
   #consent button[data-yes] { background: var(--yellow); }
+  #splash { position: fixed; inset: 0; z-index: 50; background: #07060a; overflow: hidden; transition: opacity .6s; }
+  #splash.gone { opacity: 0; pointer-events: none; }
+  #splash::before { content: ""; position: absolute; inset: -40px; background: url(/splash.webp) center / cover; filter: blur(28px) brightness(.45); }
+  #splash .art { position: absolute; inset: 0; background: url(/splash.webp) center / contain no-repeat; }
+  #splash .load { position: absolute; left: 50%; bottom: clamp(18px, 5vh, 54px); transform: translateX(-50%); width: min(70vw, 560px); text-align: center; text-shadow: 0 2px 0 #000, 0 0 14px #000; }
+  #splash .bar { height: 14px; background: rgba(10,10,14,.8); border: 2px solid var(--paper); transform: skewX(-18deg); }
+  #splash .bar i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--yellow), #ff2d6f); transition: width .35s; }
+  #splash .msg { margin-top: 10px; font-size: clamp(20px, 3vw, 30px); letter-spacing: .12em; }
+  #splash .msg b { display: none; font-weight: 400; color: var(--yellow); animation: blink 1s steps(2) infinite; }
+  #splash.ready .msg span { display: none; } #splash.ready .msg b { display: inline; }
+  #splash.ready .bar { opacity: .55; }
+  @keyframes blink { 50% { opacity: .25; } }
   .picks { display: flex; flex-wrap: wrap; gap: 6px 44px; }
   .diff { display: flex; align-items: center; gap: 10px; margin-top: 22px; font-size: 30px; }
   .diff b { font-weight: 400; min-width: 4.2em; text-align: center; color: #58c13b; }
@@ -131,6 +143,7 @@
 <div id="hurt"></div>
 <div id="toast"></div>
 <div id="banner"></div>
+<div id="splash"><div class="art"></div><div class="load"><div class="bar"><i id="loadfill"></i></div><div class="msg"><span>LOADING…</span><b>PRESS ANY KEY</b></div></div></div>
 <div id="consent"><p>Allow anonymous play statistics (Google Analytics)? It uses cookies to count visits and races.</p><button data-yes>Allow</button><button data-no>No thanks</button></div>
 <div id="pause"><h2>PAUSED</h2><p><kbd>Esc</kbd>Resume<kbd>Enter</kbd>Restart<kbd>Q</kbd>Quit to title</p></div>
 
