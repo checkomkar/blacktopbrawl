@@ -60,6 +60,12 @@
   #moves { left: 50%; bottom: 86px; transform: translateX(-50%) skewX(-10deg); display: flex; gap: 4px; font-size: 22px; }
   #moves span { padding: 4px 16px; background: rgba(18,18,22,.72); opacity: .55; }
   #moves span.on { background: var(--yellow); color: var(--ink); opacity: 1; text-shadow: none; }
+  #consent { position: fixed; right: 18px; bottom: 18px; z-index: 40; display: none; max-width: 300px; padding: 14px 16px; background: rgba(18,18,22,.94); border-left: 5px solid var(--yellow); font: 14px/1.45 system-ui, sans-serif; font-style: normal; letter-spacing: 0; }
+  #consent.show { display: block; }
+  body.riding #consent { display: none; }
+  #consent p { margin: 0 0 10px; }
+  #consent button { font: 600 14px system-ui, sans-serif; padding: 6px 14px; margin-right: 8px; border: 0; border-radius: 3px; cursor: pointer; background: var(--paper); color: var(--ink); }
+  #consent button[data-yes] { background: var(--yellow); }
   .picks { display: flex; flex-wrap: wrap; gap: 6px 44px; }
   .diff { display: flex; align-items: center; gap: 10px; margin-top: 22px; font-size: 30px; }
   .diff b { font-weight: 400; min-width: 4.2em; text-align: center; color: #58c13b; }
@@ -125,6 +131,7 @@
 <div id="hurt"></div>
 <div id="toast"></div>
 <div id="banner"></div>
+<div id="consent"><p>Allow anonymous play statistics (Google Analytics)? It uses cookies to count visits and races.</p><button data-yes>Allow</button><button data-no>No thanks</button></div>
 <div id="pause"><h2>PAUSED</h2><p><kbd>Esc</kbd>Resume<kbd>Enter</kbd>Restart<kbd>Q</kbd>Quit to title</p></div>
 
 <section id="title" class="screen">

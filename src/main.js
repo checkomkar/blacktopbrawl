@@ -9,6 +9,7 @@ import { createBike } from './render/bikeModel.js';
 import { createAudio } from './audio.js';
 import { loadBikeAsset } from './render/bikeAsset.js';
 import { loadRiderAsset } from './render/riderAsset.js';
+import { initAnalytics, track as report } from './analytics.js';
 
 const $ = (id) => document.getElementById(id);
 const tracks = {};
@@ -51,7 +52,7 @@ window.addEventListener('keydown', (e) => {
   if (e.code === 'Escape' && (paused || state === 'race' || state === 'countdown')) { setPaused(!paused); return; }
   if (paused) {
     if (e.code === 'Enter') { setPaused(false); startRace(); }
-    if (e.code === 'KeyQ') { setPaused(false); setState('title'); }
+    if (e.code === 'KeyQ') { report('race_quit', { course: courseId, difficulty: race.difficulty, distance_m: Math.round(bike.s) }); setPaused(false); setState('title'); }
     return;
   }
   keys.add(e.code);
@@ -246,6 +247,7 @@ function startRace() {
   track.sample(bike.s, sample);
   camH = sample.h;
   $('best').textContent = best ? `BEST ${fmt(best)}` : '';
+  report('race_start', { course: courseId, difficulty: race.difficulty });
   setState('countdown');
 }
 function finishRace() {
@@ -256,6 +258,7 @@ function finishRace() {
     try { localStorage.setItem(`bb.best.${COURSES[courseId].seed}`, JSON.stringify(best)); } catch { /* ignore */ }
   }
   const place = race.finished.indexOf(race.player) + 1;
+  report('race_finish', { course: courseId, difficulty: race.difficulty, place, time_s: Math.round(t * 10) / 10, new_best: isBest });
   $('ftag').textContent = 'COURSE COMPLETE';
   $('fplace').textContent = place === 1 ? 'You win!' : `${ordinal(place)} place`;
   $('ftime').textContent = fmt(t);
@@ -266,6 +269,7 @@ function finishRace() {
 }
 function busted() {
   flash('BUSTED');
+  report('race_busted', { course: courseId, difficulty: race.difficulty, distance_m: Math.round(bike.s) });
   $('ftag').textContent = 'PULLED OVER BY THE POLICE';
   $('fplace').textContent = 'Busted!';
   $('ftime').textContent = '—';
@@ -503,5 +507,7 @@ setCourse(0);
 
 document.getElementById('moves').replaceChildren(...MOVES.map(([, label]) => Object.assign(document.createElement('span'), { textContent: label })));
 selectMove(move);
+
+initAnalytics();
 
 window.__game = { get move() { return MOVES[move][0]; }, bike, get track() { return track; }, race, keys, get state() { return state; }, get paused() { return paused; }, tick, world, updateView, setCourse, drainEvents, updateHud };
